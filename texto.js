@@ -48,24 +48,51 @@ function limparTexto(texto) {
  * @param {string} texto 
  * @returns array 
  */
-function listarPalavrasUnicas(texto) {
-    let palavras = new Set(texto.split(/\s+/));
-    return Array.from(palavras).filter(palavra =>palavra.length>0).sort();
+function listarPalavrasUnicas(texto, sort = false) {
+    
+    let array = listarPalavras(texto);
+    array = array.map( i => { return i.toLowerCase() });
+
+    let palavras = new Set([...array]);
+
+    if(sort) {
+        return Array.from(palavras).filter(palavra =>palavra.length>0).sort();
+    }
+    return Array.from(palavras).filter(palavra =>palavra.length>0);
 }
 
 /**
  * Retorna lista de palavras com repetição.
+ * Retirado caracteres :(),.
  * @param {string} texto 
  * @returns array
  */
-function listarPalavras(texto) {
+function listarPalavras(texto, sort = false) {
     let palavras = texto.split(/\s+/);
-    return Array.from(palavras).filter(palavra =>palavra.length>0).sort();
+
+    palavras = palavras.map( item => {
+
+        return item.replace(",", "").
+        replace(".", "").
+        replace("(", "").
+        replace(")", "").
+        replace(":", "").
+        toLowerCase()
+        ;
+
+    });
+
+    if(sort) {
+        return Array.from(palavras).filter(palavra =>palavra.length>0).sort();
+    }
+
+    return Array.from(palavras).filter(palavra =>palavra.length>0);
 }
 
 
 function contarPalavras(texto) {
-    return texto.split(/\s+/).length;
+    let i = listarPalavras(texto); 
+    return i.length;
 }
 
 
@@ -140,7 +167,7 @@ function palavraFrequenciaObj(words) {
 function listaFrequenciasDistintas(words) {
     let obj = palavraFrequenciaObj(words);
     let valores = new Set(Object.values(obj));
-    valores = Array.from(valores).sort( (a,b)=> b-a);
+    valores = Array.from(valores).sort( (a,b)=> b-a ).filter( i => {return i>1});
     return valores;
 }
 

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+	
+    <title>Texto</title>
+    <script src="../js-text-analysis/ngram.js"></script>
+    <script src="../js-text-analysis/conjuntos.js"></script>
+    <script src="../js-text-analysis/portugues.js"></script>
+    <script src="../js-text-analysis/texto.js"></script>
+	<style>		
+        * {
+            font-family: monospace;
+        }
+        p.teste:nth-child(even) {
+            background-color: #f2f2f2;
+            padding: 5px 0px;
+        }
+        textarea {
+            resize: none;
+            padding: 20px;
+        }
+        section {
+            width: 75%;
+        }
+        span.freqTag {
+            margin-right: 5px;
+            padding: 0px 4px;
+            background-color: #e1e1e1;
+            color: #666;
+            text-align: center;
+
+            display: inline-block;
+            min-width: 14px;
+
+        }
+        span.freqTag:hover {
+            background-color: #999;
+            color: #FFF;
+        }
+        .palavra {
+            border-bottom: 1px solid #e1e1e1; 
+            /*border-top: 1px solid #e1e1e1; */
+            margin-right: 12px;
+            line-height: 24px;
+        }
+        .palavra:hover {
+            border-bottom: 1px solid #666;
+        }
+        p.palavra_linha {
+            word-wrap: break-word;
+        }
+        p.palavra_linha span:first-child {
+            color: #666; background-color: #e1e1e1; padding: 2px 4px; margin-right: 8px;
+        }
+
+        pre.caixaTextoComprido, .caixaTextoComprido {
+            /* background: #4CAF50;
+            color: white; */
+            padding: 15px;
+            /*width: 80%;*/
+            height: 200px;
+            overflow: scroll;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        /* por causa do sticky */
+        .sidebar {
+        width: 25%;
+        height: 25vh; /*// experiment with this value, try changing to 110vh*/
+        min-height: 200px;
+        overflow: auto;
+        position: -webkit-sticky;
+        position: sticky;
+        top: 5%;
+        }
+
+        .main {
+        width: 60%;
+        height: 200vh;
+        min-height: 1000px;
+        display: flex;
+        flex-direction: column;
+        }
+
+        .main,
+        .sidebar {
+        border: 5px solid #222;
+        background-color: white;
+        border-radius: 10px;
+        color: #222;
+        padding: 15px;
+        }
+
+        .wrapper {
+        display: flex;
+        justify-content: space-between;
+        }
+	</style>
+  </head>
+
+  <body>
+
+    <div class="wrapper">
+        <div class="main">
+            <h1>Análise Textual</h1>
+
+            <h2>Texto para Análise</h2>        
+            <section id="texto_principal_sec" >        
+                <textarea id="textoPrincipal" cols="100" rows="5" disabled></textarea>
+            </section>
+        
+            <section id="texto_palavras_sec" >        
+                <h2>Texto Original Palavras</h2>        
+                <pre id="textoPrincipalPalavras" class="caixaTextoComprido"></pre>
+            </section>
+        
+        
+            <h2>Estatísticas</h2>
+            <section id="estatisticas_sec">
+                <pre id="estatisticas_main" class="caixaTextoComprido"></pre>
+                
+                <h3>Frequência de Palavras</h3>
+                <pre id="frequencias_palavras_main" class="caixaTextoComprido"></pre>
+
+
+                <h3>Frequência de Ngramas - a fazer</h3>
+                <pre id="frequencias_ngrams_main" class="caixaTextoComprido">
+                    Em desenvolvimento
+                </pre>
+
+            </section>
+        
+            <pre id="debug"></pre>
+        
+            <div id="container"></div>
+
+
+
+            
+        </div>
+        
+    </div>
+  </body>
+
+    <script>
+
+
+
+var texto = `De tudo, ao meu amor serei atento
+Antes, e com tal zelo, e sempre, e tanto
+Que mesmo em face do maior encanto
+Dele se encante mais meu pensamento.
+
+Quero vivê-lo em cada vão momento
+E em louvor hei de espalhar meu canto
+E rir meu riso e derramar meu pranto
+Ao seu pesar ou seu contentamento.
+
+E assim, quando mais tarde me procure
+Quem sabe a morte, angústia de quem vive
+Quem sabe a solidão, fim de quem ama
+
+Eu possa me dizer do amor (que tive):
+Que não seja imortal, posto que é chama
+Mas que seja infinito enquanto dure.`;
+
+
+let dados = {
+    // palavras_texto_qtd: 0,
+    // palavras_texto_limpo_qtd: 0,
+    // palavras_unicas_qtd: 0,
+    // sentencas_qtd: 0,// vou quebrar nos pontos
+    // sentencas_pct: 0,// palavras_texto_qtd  por sentencas_qtd. da pra saber se a escrita eh complexa? acho que sim.
+    // palavra_max: 0,
+    // palavra_max_lenght: 0,
+    // palavra_min: 0,
+    // palavra_min_lenght: 0,
+    // frequencia_arvore: {},
+    // frequencia: {},
+    // palavras: []
+};
+
+
+
+/* Interno aux */
+
+// function salvar(chave, valor) {
+//     dados[chave] = valor;    
+// }
+
+function log(valores) {
+    console.log(...valores);
+}
+
+
+function exibirosdados(arr, titulo) {
+    let a = document.getElementById('textoPrincipalPalavras');
+    let i = 1;
+    let t = "";
+    let tituloNovo = arr.length + " - " + titulo;
+    t = t + "\n"+"-".padEnd(tituloNovo.length, "-");
+    t = t + "\n" + tituloNovo;
+    t = t + "\n"+"-".padEnd(tituloNovo.length, "-");
+    arr.forEach( item => {
+        t = t + "\n" + i + " | " + item;
+        i++;
+    });
+    
+    a.appendChild( document.createTextNode(t) );   
+}
+
+
+
+
+
+/* Contagem Inicial - Texto sem Limpeza */
+
+function contagemTextoPuro() {
+
+
+    /* Palavras */
+    let d = {};
+    d.palavrasOriginal = listarPalavras(texto);
+    d.palavrasOriginalQtd = contarPalavras(texto);
+    d.palavrasUnicasOriginal = listarPalavrasUnicas(texto);
+    d.palavrasUnicasOriginalQtd = d.palavrasUnicasOriginal.length;
+    d.taxaRepeticaoPalavra = d.palavrasUnicasOriginal*1.0/d.palavrasOriginalQtd;
+    
+    
+    /* Sentenças */
+    let sentencasOriginal = listarSentencas(texto);
+    d.sentencasOriginalQtd = sentencasOriginal.length;
+    d.sentencasPct = d.palavrasOriginalQtd*1.0/d.sentencasOriginalQtd;
+    
+    
+    /* debug */
+    console.log('Contagem Palavras Inicial - Texto sem Limpeza');
+    exibirosdados(d.palavrasOriginal, "Todas as palavras tirando apenas .:(),");
+    exibirosdados(d.palavrasUnicasOriginal, "Palavras únicas - minúsculas - vindo da lista de palavras");
+
+    return d;
+}
+
+
+function contagemTextoLimpo() {
+    
+    /* Palavras */
+    let d = {};
+    
+    // troca acentos e remove caracteres especiais
+    // let textoLimpo = limparTexto(texto);
+    let textoLimpo = listarPalavras(texto);
+    
+    // para frequencia de palavras mais coisas precisam ser retiradas
+    // não funcionou, pelo menos não como queria
+    // getStopWords().forEach(item => {
+    //     textoLimpo = textoLimpo.replace(" "+item+" ", ' ');
+    // });
+
+
+    let palavrasSemStopwords = diferenca(textoLimpo, getStopWords());
+    palavrasSemStopwords.sort();
+    
+
+
+   
+    // removendo palavras de tamanho 1
+    let palavrasLimpo = listarPalavras(palavrasSemStopwords.join(" "))/*.filter( item => {return item.length>1} )*/;
+    let palavrasUnicas = listarPalavrasUnicas(palavrasSemStopwords.join(" "))/*.filter( item => {return item.length>1} )*/;
+
+    d.palavrasLimpo = palavrasLimpo;
+    d.palavrasUnicas = palavrasUnicas;
+    d.palavrasTextoLimpoQtd = palavrasLimpo.length
+    d.palavrasUnicasTextoLimpoQtd = palavrasUnicas.length;
+
+    
+    
+    
+    /* ********************************************* */
+    console.log('Contagem Palavras - Texto pós Limpeza');
+    exibirosdados(palavrasSemStopwords, "Palavras limpas - sem stopwords");
+    exibirosdados(palavrasUnicas, "Palavras únicas limpas - sem stopwords");
+
+    return d;    
+}
+
+
+
+dados.textoPuro = {...contagemTextoPuro()};
+dados.textoLimpo = {...contagemTextoLimpo()};
+
+dados.estatisticas = {
+    diferencaQtdPalavrasTextoAntesDepois: dados.textoPuro.palavrasOriginalQtd - dados.textoLimpo.palavrasTextoLimpoQtd,
+    pctQtdPalavrasTextoAntesDepois: dados.textoLimpo.palavrasTextoLimpoQtd * 1.0/ dados.textoPuro.palavrasOriginalQtd,
+
+    diferencaQtdPalavrasUnicasAntesDepois: dados.textoPuro.palavrasUnicasOriginalQtd - dados.textoLimpo.palavrasUnicasTextoLimpoQtd,
+    pctQtdPalavrasUnicasAntesDepois: dados.textoLimpo.palavrasUnicasTextoLimpoQtd*1.0/dados.textoPuro.palavrasUnicasOriginalQtd
+};
+
+/* max min */
+
+let palavraMax = maxString(dados.textoLimpo.palavrasLimpo);
+dados.estatisticas.palavraMax = palavraMax;
+dados.estatisticas.palavraMaxLength = palavraMax.length;
+
+let palavraMin = minString(dados.textoLimpo.palavrasLimpo);
+dados.estatisticas.palavraMin = palavraMin;
+dados.estatisticas.palavraMinLength = palavraMin.length
+
+
+
+/* Frequências - Palavras */
+
+dados.textoLimpo.palavraFrequencia = palavraFrequenciaObj(dados.textoLimpo.palavrasLimpo);//ok
+dados.textoLimpo.listaFrequencias = listaFrequenciasDistintas(dados.textoLimpo.palavrasLimpo);
+dados.textoLimpo.frequenciaPalavras = frequenciaPalavrasObj(dados.textoLimpo.palavrasLimpo, 2);
+dados.textoLimpo.palavraFrequenciaMap_ = palavraFrequenciaMap(dados.textoLimpo.palavrasLimpo);
+dados.textoLimpo.frequenciaPalavrasMap_ = frequenciaPalavrasMap(dados.textoLimpo.palavrasLimpo, 2);
+
+console.log('Dados final: ' , dados);
+
+
+/* debug */
+let lista = [];
+dados.textoLimpo.palavraFrequenciaMap_.forEach( (value, key) => {
+    lista.push(  key + " | " + value  );
+} );
+
+exibirosdados(lista, "Palavras e Frequências - palavraFrequenciaMap_ - dados.textoLimpo.palavrasLimpo");
+
+
+lista = [];
+dados.textoLimpo.palavraFrequenciaMap_.forEach( (value, key) => {
+    lista.push(  value + " | " + key  );
+} );
+lista.sort();
+exibirosdados(lista, "Frequências e Palavras - palavraFrequenciaMap_ - dados.textoLimpo.palavrasLimpo");
+/* Fim da parte 1 - primeiro fluxo para contar as palavras */
+
+
+/* parte 2 - fazendo as frequencias adicionando ngrams */
+/* Ngrams - Adicionando ngrams nas frequências */
+
+// construindo ngrams de 2 a 6
+// let ngramLista = ngrams_between(textoLimpo.split(" "), 2, 6);
+
+// retirando pronomes das palavras + ngrams
+// let palavrasLimpoLimpo = diferenca(palavrasLimpo, getPronomes());
+// let palavrasNgrams = palavrasLimpoLimpo.concat(ngramLista);
+
+
+
+// let frequencianNgramMap_ = frequenciaPalavrasMap(palavrasNgrams, 2);
+// console.log("frequenciaPalavrasMap - frequencianNgramMap_");
+// console.log(frequencianNgramMap_);
+
+
+/* HTML */
+
+/* 
+Passos:
+
+1 - texto no box de texto.
+*/
+
+function exibirTexto() {
+    document.getElementById("textoPrincipal").textContent = texto;
+}
+
+
+function exibirEstatisticas() {
+    let eMain = document.getElementById("estatisticas_main");
+    
+    let texto = "Texto Original" +
+    "\nPalavras qtd original: " + dados.textoPuro.palavrasOriginalQtd +
+    "\nPalavras únicas qtd original: " + dados.textoPuro.palavrasUnicasOriginalQtd +
+    "\nTexto pós limpeza" +
+    "\nPalavras qtd limpo: " + dados.textoLimpo.palavrasTextoLimpoQtd +
+    "\nPalavras únicas qtd limpo: " + dados.textoLimpo.palavrasUnicasTextoLimpoQtd +
+    "\nDiferença de palavras " +
+    "\nPalavras totais antes e depois: " + dados.estatisticas.diferencaQtdPalavrasTextoAntesDepois +
+    "\nPercentual de Diferença: " + dados.estatisticas.pctQtdPalavrasTextoAntesDepois +
+    "\nPalavras únicas antes e depois: " + dados.estatisticas.diferencaQtdPalavrasUnicasAntesDepois +
+    "\nPercentual de Diferença: " + dados.estatisticas.pctQtdPalavrasUnicasAntesDepois
+    "\nPercentual de Diferença: " + dados.estatisticas.pctQtdPalavrasUnicasAntesDepois
+    ;
+
+    
+  
+
+    // buscando a maior
+
+
+    
+    eMain.appendChild( document.createTextNode(texto) );    
+}
+
+
+function exibirPalavrasFrequencias() {
+    let eMain = document.getElementById("frequencias_palavras_main");
+    
+    let freqsLista = dados.textoLimpo.listaFrequencias;
+    let freqs = dados.textoLimpo.listaFrequencias.join(" - ");
+    let texto = "Frequências encontradas: \n" + 
+    freqs;
+
+    // maior coluna frequencia
+    let colFreq = ["Frequência"];
+    dados.textoLimpo.frequenciaPalavrasMap_.forEach( (value, key) => {
+        colFreq.push( new String(key) );
+    });
+    let maiorFreq = colFreq.map(i => {return i.length}).sort( (a,b) => b-a )[0];
+
+    // maior coluna observacoes
+    let colObs = ["Observações"];
+    dados.textoLimpo.frequenciaPalavrasMap_.forEach( (value, key) => {
+        colObs.push( new String(value.length) );
+    });
+    let maiorObs = colObs.map(i => {return i.length}).sort( (a,b) => b-a )[0];
+
+    // maior coluna palavras
+    let colPalavras = ["Palavras"];
+    dados.textoLimpo.frequenciaPalavrasMap_.forEach( (value, key) => {
+        colPalavras.push( new String(value.join(" - ")) );
+    });
+    let maiorPalavras = colPalavras.map(i => {return i.length}).sort( (a,b) => b-a )[0];
+
+    let freqStr = "Frequência".padEnd(maiorFreq, ' ');
+    let obsStr = "Observações".padEnd(maiorObs, ' ');
+    let palavraStr = "Palavras".padEnd(maiorPalavras, ' ');
+
+    let cabecalho = "\n|"+[freqStr,obsStr,palavraStr].join("|")+"|";
+    
+    let freqDiv = "-".padEnd(maiorFreq, '-');
+    let obsDiv = "-".padEnd(maiorObs, '-');
+    let palavraDiv = "-".padEnd(maiorPalavras, '-');
+
+    let cabecalhoDiv = "\n|"+[freqDiv,obsDiv,palavraDiv].join("|")+"|";
+
+    texto = texto + cabecalho + cabecalhoDiv;
+    
+    // dados.textoLimpo.frequenciaPalavrasMap_.forEach( (value, key) => {
+    //    let freq = new String(key).padEnd( maiorFreq, ' ') ;
+    //    let obs = new String(value.length).padEnd(maiorObs, ' ');
+    //    let ws = value.join(" - ").padEnd(maiorPalavras, ' ');
+
+    //    texto = texto + "\n|" + freq + "|" + obs + "|" + ws + "|";
+    // });
+
+
+    dados.textoLimpo.listaFrequencias.forEach( i => {
+        let freq = new String(i).padEnd( maiorFreq, ' ') ;
+        let obs = new String(dados.textoLimpo.frequenciaPalavrasMap_.get(i).length).padEnd(maiorObs, ' ');
+        let ws = dados.textoLimpo.frequenciaPalavrasMap_.get(i).join(" - ").padEnd(maiorPalavras, ' ');
+
+        texto = texto + "\n|" + freq + "|" + obs + "|" + ws + "|";
+    });
+    
+    
+    eMain.appendChild( document.createTextNode(texto) );    
+}
+
+exibirTexto();
+exibirEstatisticas();
+exibirPalavrasFrequencias();
+
+
+
+
+function makeLinhaTabelasSimples(chave, valor) {
+  let tr = document.createElement('tr');
+  let tdChave = document.createElement('td');
+  let tdValor = document.createElement('td');
+  
+  tdChave.textContent = chave;
+  tdValor.textContent = valor;
+
+  tr.appendChild(tdChave);
+  tr.appendChild(tdValor);
+
+  return tr;
+}
+
+
+</script>
+</html>
